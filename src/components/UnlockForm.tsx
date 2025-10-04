@@ -17,7 +17,8 @@ export default function UnlockForm({ onUnlock, error }: UnlockFormProps) {
     e.preventDefault();
     setIsUnlocking(true);
     await onUnlock(password);
-    setIsUnlocking(false); // This will only be reached if onUnlock fails and throws an error
+    // If unlock fails, the error state will be set in the parent, re-rendering this form.
+    setIsUnlocking(false); 
   };
 
   return (

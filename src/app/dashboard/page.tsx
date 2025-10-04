@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import PasswordGenerator from '@/components/PasswordGenerator';
 import AddItemForm, { VaultItemData } from '@/components/AddItemForm';
@@ -22,7 +22,6 @@ interface FetchedVaultItem {
 interface DecryptedVaultItem extends FetchedVaultItem {
   decryptedData?: VaultItemData;
 }
-
 
 export default function Dashboard() {
   const { data: session, status } = useSession({ required: true });
@@ -62,7 +61,7 @@ export default function Dashboard() {
 
   const fetchAndDecryptVaultItems = async (key: CryptoKey) => {
     const res = await fetch('/api/vault');
-    const items: FetchedVaultItem[] = await res.json(); // Use the corrected simple type
+    const items: FetchedVaultItem[] = await res.json();
     const decryptedItems = await Promise.all(
       items.map(async (item) => {
         const decryptedData = await decryptData(key, item.iv, item.encryptedData) as VaultItemData;
@@ -103,7 +102,6 @@ export default function Dashboard() {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  // The rest of the component's return statement remains the same...
   return (
     <div className="relative min-h-screen bg-gray-50 dark:bg-gray-900">
       {isFormOpen && <AddItemForm onSave={handleSaveItem} onCancel={closeForm} initialData={editingItem ? {title: editingItem.title, ...editingItem.decryptedData} : null} />}
