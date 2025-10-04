@@ -2,7 +2,6 @@
 
 import mongoose from 'mongoose';
 
-// NEW: This block tells TypeScript what to expect on the global object.
 declare global {
   var mongoose: {
     conn: typeof mongoose | null;
@@ -10,7 +9,6 @@ declare global {
   };
 }
 
-// The rest of your file stays the same
 let cached = global.mongoose;
 
 if (!cached) {
@@ -35,12 +33,17 @@ async function dbConnect() {
       );
     }
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      return mongoose;
-    });
+    // The logic is simplified here. We just assign the promise from mongoose.connect.
+    cached.promise = mongoose.connect(MONGODB_URI, opts);
   }
   
-  cached.conn = await cached.promise;
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null; // Reset promise on error
+    throw e;
+  }
+
   return cached.conn;
 }
 
