@@ -2,14 +2,19 @@
 
 import mongoose from 'mongoose';
 
-declare global {
-  var mongoose: {
-    conn: typeof mongoose | null;
-    promise: Promise<typeof mongoose> | null;
-  };
+// Define an interface for our cached connection object.
+interface MongooseCache {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
 }
 
-let cached = global.mongoose;
+// Extend the global type to include our custom mongoose property.
+declare global {
+  var mongoose: MongooseCache;
+}
+
+// Use the interface to explicitly type the 'cached' variable.
+let cached: MongooseCache = global.mongoose;
 
 if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
@@ -32,15 +37,14 @@ async function dbConnect() {
         'Please define the MONGODB_URI environment variable inside .env.local'
       );
     }
-
-    // The logic is simplified here. We just assign the promise from mongoose.connect.
+    
     cached.promise = mongoose.connect(MONGODB_URI, opts);
   }
   
   try {
     cached.conn = await cached.promise;
   } catch (e) {
-    cached.promise = null; // Reset promise on error
+    cached.promise = null;
     throw e;
   }
 
