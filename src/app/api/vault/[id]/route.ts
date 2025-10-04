@@ -8,9 +8,9 @@ import User from '@/models/User';
 
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string } } // CHANGED: Corrected function signature
+  context: { params: { id: string } } 
 ) {
-  const id = context.params.id; // CHANGED: Get id from context
+  const id = context.params.id;
   const session = await getServerSession();
   if (!session?.user?.email) {
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
@@ -25,7 +25,7 @@ export async function PUT(
   const { title, iv, encryptedData } = await request.json();
   
   const updatedItem = await VaultItem.findOneAndUpdate(
-    { _id: id, userId: user._id }, // Use the id variable
+    { _id: id, userId: user._id },
     { title, iv, encryptedData },
     { new: true }
   );
@@ -40,9 +40,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string } } // CHANGED: Corrected function signature
+  context: { params: { id: string } }
 ) {
-  const id = context.params.id; // CHANGED: Get id from context
+  const id = context.params.id;
   const session = await getServerSession();
   if (!session?.user?.email) {
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
