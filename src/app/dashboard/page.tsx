@@ -2,18 +2,27 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import PasswordGenerator from '@/components/PasswordGenerator';
-import AddItemForm from '@/components/AddItemForm';
-import type { VaultItemData } from '@/components/AddItemForm';
-import UnlockForm from '@/components/UnlockForm'; // NEW: Import the unlock form
+import AddItemForm, { VaultItemData } from '@/components/AddItemForm';
+import UnlockForm from '@/components/UnlockForm';
 import { deriveKey, encryptData, decryptData } from '@/lib/crypto';
-import type { IVaultItem } from '@/models/VaultItem';
 
-interface DecryptedVaultItem extends IVaultItem {
+// UPDATED: Define a simple type for the data received from the API
+interface FetchedVaultItem {
+  _id: string;
+  userId: string;
+  title: string;
+  iv: string;
+  encryptedData: string;
+}
+
+// UPDATED: This interface now uses the simple FetchedVaultItem type
+interface DecryptedVaultItem extends FetchedVaultItem {
   decryptedData?: VaultItemData;
 }
+
 
 export default function Dashboard() {
   const { data: session, status } = useSession({ required: true });
@@ -25,9 +34,8 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingItem, setEditingItem] = useState<DecryptedVaultItem | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isLocked, setIsLocked] = useState(true); // NEW: State to manage locked/unlocked
+  const [isLocked, setIsLocked] = useState(true);
 
-  // This effect now just handles the initial loading state
   useEffect(() => {
     if (status === 'authenticated') {
       setIsLoading(false);
@@ -40,22 +48,21 @@ export default function Dashboard() {
       return;
     }
     try {
-      setError(''); // Clear previous errors
+      setError('');
       const key = await deriveKey(masterPassword, session.user.email);
       setEncryptionKey(key);
       await fetchAndDecryptVaultItems(key);
-      setIsLocked(false); // UNLOCK THE VAULT
+      setIsLocked(false);
     } catch (e) {
       console.error(e);
       setError("Failed to decrypt. Please check your password.");
-      // The form will re-render with this error message
       throw new Error("Decryption failed");
     }
   };
 
   const fetchAndDecryptVaultItems = async (key: CryptoKey) => {
     const res = await fetch('/api/vault');
-    const items: IVaultItem[] = await res.json();
+    const items: FetchedVaultItem[] = await res.json(); // Use the corrected simple type
     const decryptedItems = await Promise.all(
       items.map(async (item) => {
         const decryptedData = await decryptData(key, item.iv, item.encryptedData) as VaultItemData;
@@ -96,14 +103,11 @@ export default function Dashboard() {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
+  // The rest of the component's return statement remains the same...
   return (
     <div className="relative min-h-screen bg-gray-50 dark:bg-gray-900">
       {isFormOpen && <AddItemForm onSave={handleSaveItem} onCancel={closeForm} initialData={editingItem ? {title: editingItem.title, ...editingItem.decryptedData} : null} />}
-      
-      {/* NEW: Blur and overlay logic */}
       {isLocked && <UnlockForm onUnlock={handleUnlock} error={error} />}
-
-      {/* When locked, this content will be blurred and disabled */}
       <div className={isLocked ? 'blur-md pointer-events-none' : ''}>
         <header className="flex items-center justify-between p-4 bg-white shadow-md dark:bg-gray-800 dark:border-b dark:border-gray-700">
           <div className="text-lg font-semibold text-gray-600 dark:text-gray-300">Signed in as: {session?.user?.email}</div>
@@ -117,9 +121,7 @@ export default function Dashboard() {
               <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">Your Saved Items</h2>
               <button onClick={openFormToCreate} className="px-4 py-2 font-semibold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400">Add New Item</button>
             </div>
-            
             <input type="text" placeholder="Search by title..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full p-2 mt-4 text-gray-900 bg-white border rounded-md placeholder-gray-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"/>
-
             <div className="mt-4 space-y-4">
               {filteredVaultItems.map(item => (
                   <div key={item._id} className="p-4 bg-white border rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
