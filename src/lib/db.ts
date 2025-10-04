@@ -1,5 +1,16 @@
+// src/lib/db.ts
+
 import mongoose from 'mongoose';
 
+// NEW: This block tells TypeScript what to expect on the global object.
+declare global {
+  var mongoose: {
+    conn: typeof mongoose | null;
+    promise: Promise<typeof mongoose> | null;
+  };
+}
+
+// The rest of your file stays the same
 let cached = global.mongoose;
 
 if (!cached) {
