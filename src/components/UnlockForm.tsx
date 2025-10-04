@@ -1,5 +1,3 @@
-// src/components/UnlockForm.tsx
-
 'use client';
 
 import { useState } from 'react';
@@ -16,9 +14,11 @@ export default function UnlockForm({ onUnlock, error }: UnlockFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsUnlocking(true);
-    await onUnlock(password);
-    // If unlock fails, the error state will be set in the parent, re-rendering this form.
-    setIsUnlocking(false); 
+    try {
+      await onUnlock(password);
+    } catch (e) {
+      setIsUnlocking(false);
+    }
   };
 
   return (
@@ -26,25 +26,12 @@ export default function UnlockForm({ onUnlock, error }: UnlockFormProps) {
       <div className="w-full max-w-sm p-8 space-y-6 bg-white rounded-lg shadow-xl dark:bg-gray-800">
         <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-gray-200">Unlock Your Vault</h2>
         <p className="text-sm text-center text-gray-600 dark:text-gray-400">
-          Enter your master password to decrypt and view your saved items.
+          Enter your master password to decrypt your saved items.
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            id="master-password"
-            name="password"
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Master Password"
-            className="w-full px-3 py-2 text-gray-900 border rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          />
+          <input id="master-password" name="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Master Password" className="w-full px-3 py-2 text-gray-900 border rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
           {error && <p className="text-sm text-center text-red-500">{error}</p>}
-          <button
-            type="submit"
-            disabled={isUnlocking}
-            className="w-full px-4 py-2 font-bold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:bg-indigo-400"
-          >
+          <button type="submit" disabled={isUnlocking} className="w-full px-4 py-2 font-bold text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:bg-indigo-400">
             {isUnlocking ? 'Unlocking...' : 'Unlock'}
           </button>
         </form>
