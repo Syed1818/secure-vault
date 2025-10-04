@@ -64,7 +64,7 @@ export async function encryptData(key: CryptoKey, data: object): Promise<{ iv: s
   );
   
   return {
-    iv: ab2hex(iv),
+    iv: ab2hex(iv.buffer),
     encryptedData: ab2hex(encryptedBuffer)
   };
 }
