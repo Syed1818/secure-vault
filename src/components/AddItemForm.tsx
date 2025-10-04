@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 // Define the shape of the data the form handles
 export interface VaultItemData {
