@@ -1,14 +1,13 @@
 // src/app/api/vault/[id]/route.ts
 
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server'; // CHANGED: Added NextRequest
 import { getServerSession } from 'next-auth/next';
 import dbConnect from '@/lib/db';
 import VaultItem from '@/models/VaultItem';
 import User from '@/models/User';
 
-// NEW: Function to handle updating (editing) an item
 export async function PUT(
-  request: Request,
+  request: NextRequest, // CHANGED: Used NextRequest instead of Request
   { params }: { params: { id: string } }
 ) {
   const session = await getServerSession();
@@ -25,9 +24,9 @@ export async function PUT(
   const { title, iv, encryptedData } = await request.json();
   
   const updatedItem = await VaultItem.findOneAndUpdate(
-    { _id: params.id, userId: user._id }, // Find item by ID and ensure user owns it
-    { title, iv, encryptedData }, // The new data to update
-    { new: true } // Option to return the updated document
+    { _id: params.id, userId: user._id },
+    { title, iv, encryptedData },
+    { new: true }
   );
 
   if (!updatedItem) {
@@ -38,9 +37,8 @@ export async function PUT(
 }
 
 
-// Existing function to handle deleting an item
 export async function DELETE(
-  request: Request,
+  request: NextRequest, // CHANGED: Used NextRequest instead of Request
   { params }: { params: { id: string } }
 ) {
   const session = await getServerSession();
