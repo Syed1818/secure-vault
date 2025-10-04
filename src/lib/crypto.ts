@@ -2,7 +2,7 @@
 
 // Converts a string to an ArrayBuffer
 function str2ab(str: string): ArrayBuffer {
-  return new TextEncoder().encode(str);
+  return new TextEncoder().encode(str).buffer; // THE FIX IS HERE
 }
 
 // Converts an ArrayBuffer to a string
