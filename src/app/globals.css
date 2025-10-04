@@ -1,9 +1,7 @@
-/* Use the standard Tailwind v4 directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Keep your existing variables and body styles */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -21,11 +19,11 @@ body {
   color: var(--foreground);
 }
 
+/* Custom label styles we added */
 label {
   color: #374151;
 }
 
-/* Add this to make dark mode labels readable */
 .dark label {
-    color: #d1d5db; /* A light gray */
+  color: #d1d5db;
 }
