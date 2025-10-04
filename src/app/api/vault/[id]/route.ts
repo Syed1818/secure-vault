@@ -1,15 +1,16 @@
 // src/app/api/vault/[id]/route.ts
 
-import { NextResponse, NextRequest } from 'next/server'; // CHANGED: Added NextRequest
+import { NextResponse, NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import dbConnect from '@/lib/db';
 import VaultItem from '@/models/VaultItem';
 import User from '@/models/User';
 
 export async function PUT(
-  request: NextRequest, // CHANGED: Used NextRequest instead of Request
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: { id: string } } // CHANGED: Corrected function signature
 ) {
+  const id = context.params.id; // CHANGED: Get id from context
   const session = await getServerSession();
   if (!session?.user?.email) {
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
@@ -24,7 +25,7 @@ export async function PUT(
   const { title, iv, encryptedData } = await request.json();
   
   const updatedItem = await VaultItem.findOneAndUpdate(
-    { _id: params.id, userId: user._id },
+    { _id: id, userId: user._id }, // Use the id variable
     { title, iv, encryptedData },
     { new: true }
   );
@@ -38,9 +39,10 @@ export async function PUT(
 
 
 export async function DELETE(
-  request: NextRequest, // CHANGED: Used NextRequest instead of Request
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: { id: string } } // CHANGED: Corrected function signature
 ) {
+  const id = context.params.id; // CHANGED: Get id from context
   const session = await getServerSession();
   if (!session?.user?.email) {
     return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
@@ -52,13 +54,13 @@ export async function DELETE(
     return NextResponse.json({ message: 'User not found' }, { status: 404 });
   }
 
-  const vaultItem = await VaultItem.findOne({ _id: params.id, userId: user._id });
+  const vaultItem = await VaultItem.findOne({ _id: id, userId: user._id });
 
   if (!vaultItem) {
     return NextResponse.json({ message: 'Item not found or you do not have permission' }, { status: 404 });
   }
 
-  await VaultItem.deleteOne({ _id: params.id });
+  await VaultItem.deleteOne({ _id: id });
 
   return NextResponse.json({ message: 'Item deleted successfully' }, { status: 200 });
 }
