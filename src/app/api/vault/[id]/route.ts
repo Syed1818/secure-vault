@@ -1,10 +1,11 @@
+// src/app/api/vault/[id]/route.ts
+
 import { NextResponse, NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import dbConnect from '@/lib/db';
 import VaultItem from '@/models/VaultItem';
 import User from '@/models/User';
 
-// Correct function signature for PUT
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -29,13 +30,12 @@ export async function PUT(
   );
 
   if (!updatedItem) {
-    return NextResponse.json({ message: 'Item not found' }, { status: 404 });
+    return NextResponse.json({ message: 'Item not found or you do not have permission' }, { status: 404 });
   }
 
   return NextResponse.json(updatedItem, { status: 200 });
 }
 
-// Correct function signature for DELETE
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -51,14 +51,13 @@ export async function DELETE(
     return NextResponse.json({ message: 'User not found' }, { status: 404 });
   }
 
-  const deletedItem = await VaultItem.findOneAndDelete({
-    _id: params.id,
-    userId: user._id,
-  });
+  const vaultItem = await VaultItem.findOne({ _id: params.id, userId: user._id });
 
-  if (!deletedItem) {
-    return NextResponse.json({ error: 'Vault item not found' }, { status: 404 });
+  if (!vaultItem) {
+    return NextResponse.json({ message: 'Item not found or you do not have permission' }, { status: 404 });
   }
 
-  return NextResponse.json({ message: 'Vault item deleted successfully' });
+  await VaultItem.deleteOne({ _id: params.id });
+
+  return NextResponse.json({ message: 'Item deleted successfully' }, { status: 200 });
 }
