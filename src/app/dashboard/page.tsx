@@ -1,7 +1,7 @@
 'use client';
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react'; // Removed useRef
 import { useSession, signOut } from 'next-auth/react';
 import PasswordGenerator from '@/components/PasswordGenerator';
 import AddItemForm, { VaultItemData } from '@/components/AddItemForm';
@@ -9,7 +9,6 @@ import UnlockForm from '@/components/UnlockForm';
 import { useTheme } from '@/components/ThemeProvider';
 import { deriveKey, encryptData, decryptData } from '@/lib/crypto';
 import styles from './dashboard.module.css';
-
 interface FetchedVaultItem {
   _id: string;
   userId: string;
