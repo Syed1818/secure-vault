@@ -37,16 +37,11 @@ export default function Dashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      setIsLoading(false);
-    }
+    if (status === 'authenticated') setIsLoading(false);
   }, [status]);
-
+  
   const handleUnlock = async (masterPassword: string) => {
-    if (!session?.user?.email) {
-      setError('Session not found.');
-      return;
-    }
+    if (!session?.user?.email) return setError('Session not found.');
     try {
       setError('');
       const key = await deriveKey(masterPassword, session.user.email);
@@ -71,7 +66,7 @@ export default function Dashboard() {
     );
     setVaultItems(decryptedItems);
   };
-
+  
   const handleSaveItem = async (itemData: VaultItemData) => {
     if (!encryptionKey) return;
     const { title, ...dataToEncrypt } = itemData;
@@ -92,45 +87,10 @@ export default function Dashboard() {
       await fetchAndDecryptVaultItems(encryptionKey);
     }
   };
-
+  
   const openFormToEdit = (item: DecryptedVaultItem) => { setEditingItem(item); setIsFormOpen(true); };
   const openFormToCreate = () => { setEditingItem(null); setIsFormOpen(true); };
   const closeForm = () => { setEditingItem(null); setIsFormOpen(false); };
-
-  const handleExport = async () => {
-    if (!encryptionKey || vaultItems.length === 0) return alert("Vault must be unlocked and contain items to export.");
-    const decryptedData = vaultItems.map(item => ({ title: item.title, ...item.decryptedData }));
-    const { iv, encryptedData } = await encryptData(encryptionKey, decryptedData);
-    const blob = new Blob([JSON.stringify({ iv, encryptedData })], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'secure-vault-export.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!encryptionKey) return;
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const { iv, encryptedData } = JSON.parse(e.target?.result as string);
-        const decryptedArray = await decryptData(encryptionKey, iv, encryptedData) as VaultItemData[];
-        for (const item of decryptedArray) {
-          await handleSaveItem(item);
-        }
-        alert(`Successfully imported ${decryptedArray.length} items.`);
-      } catch (err) {
-        console.error(err);
-        alert("Import failed. The file may be corrupt or the password is incorrect.");
-      }
-    };
-    reader.readAsText(file);
-    event.target.value = '';
-  };
 
   const filteredVaultItems = vaultItems.filter(item => item.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -160,17 +120,11 @@ export default function Dashboard() {
           <div className={styles.vaultSection}>
             <div className={styles.vaultHeader}>
               <h2 className={styles.vaultTitle}>Your Saved Items</h2>
-              <div className={styles.headerActions}>
-                <input type="file" accept=".json" ref={fileInputRef} onChange={handleImport} style={{ display: 'none' }} />
-                <button onClick={() => fileInputRef.current?.click()} className={`${styles.button} ${styles.secondaryButton}`}>Import</button>
-                <button onClick={handleExport} className={`${styles.button} ${styles.secondaryButton}`}>Export</button>
-                <button onClick={openFormToCreate} className={`${styles.button} ${styles.primaryButton}`}>Add New Item</button>
-              </div>
+              <button onClick={openFormToCreate} className={`${styles.button} ${styles.primaryButton}`}>Add New Item</button>
             </div>
             <input type="text" placeholder="Search by title..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={styles.searchBar}/>
             <div className={styles.vaultList}>
-              {filteredVaultItems.length > 0 ? (
-                filteredVaultItems.map(item => (
+              {filteredVaultItems.map(item => (
                   <div key={item._id} className={styles.vaultItem}>
                     <div className={styles.itemHeader}>
                       <h3 className={styles.itemTitle}>{item.title}</h3>
@@ -182,10 +136,7 @@ export default function Dashboard() {
                     <p className={styles.itemInfo}>Username: {item.decryptedData?.username}</p>
                     <p className={styles.itemInfo}>Password: •••••••••</p>
                   </div>
-                ))
-              ) : (
-                <p className={styles.itemInfo}>{vaultItems.length > 0 ? 'No items match your search.' : 'You have no saved items yet.'}</p>
-              )}
+              ))}
             </div>
           </div>
         </main>
