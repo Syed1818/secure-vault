@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import styles from './form.module.css';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -27,70 +28,24 @@ export default function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
-      <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg dark:bg-neutral-900 dark:border dark:border-gray-700">
-        <h2 className="text-3xl font-extrabold text-center">🔐 Secure Vault</h2>
-        <p className="text-sm text-center text-gray-500 dark:text-gray-400">
-          Log in to access your vault
-        </p>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
+    <div className={styles.container}>
+      <div className={styles.formBox}>
+        <h2 className={styles.title}>Log In to Your Vault</h2>
+        <form onSubmit={handleSubmit} className={styles.form}>
           <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-              placeholder="you@example.com"
-            />
+            <label htmlFor="email" className={styles.label}>Email</label>
+            <input id="email" name="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={styles.input} />
           </div>
-
           <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-              placeholder="••••••••"
-            />
+            <label htmlFor="password" className={styles.label}>Password</label>
+            <input id="password" name="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className={styles.input} />
           </div>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <button
-            type="submit"
-            className="w-full py-2 px-4 font-semibold text-white bg-indigo-600 rounded-lg shadow hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500"
-          >
-            Log In
-          </button>
+          {error && <p className={styles.error}>{error}</p>}
+          <button type="submit" className={styles.submitButton}>Log In</button>
         </form>
-
-        <p className="text-sm text-center text-gray-600 dark:text-gray-400">
+        <p className={styles.linkText}>
           Don&apos;t have an account?{' '}
-          <Link
-            href="/signup"
-            className="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-          >
-            Sign Up
-          </Link>
+          <Link href="/signup">Sign Up</Link>
         </p>
       </div>
     </div>

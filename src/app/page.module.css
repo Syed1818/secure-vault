@@ -1,0 +1,55 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  text-align: center;
+}
+
+.title {
+  font-size: 3rem;
+  font-weight: 800;
+}
+
+.description {
+  margin-top: 1rem;
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+}
+
+.buttonContainer {
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.button {
+  padding: 0.75rem 2rem;
+  font-weight: 500;
+  border-radius: 6px;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.primary {
+  background-color: var(--button-primary-bg);
+  color: var(--button-primary-text);
+}
+
+.primary:hover {
+  opacity: 0.9;
+}
+
+.secondary {
+  background-color: var(--card-background-color);
+  color: var(--text-primary);
+  border: 1px solid var(--card-border-color);
+}
+
+.secondary:hover {
+  background-color: rgba(128, 128, 128, 0.1);
+}
