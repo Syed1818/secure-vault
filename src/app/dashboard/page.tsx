@@ -1,7 +1,5 @@
-// src/app/dashboard/page.tsx
-
-export const dynamic = 'force-dynamic'; // <-- THIS IS THE MAIN FIX
 'use client';
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
@@ -12,6 +10,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { deriveKey, encryptData, decryptData } from '@/lib/crypto';
 import styles from './dashboard.module.css';
 
+// ... the rest of the file is the same ...
 interface FetchedVaultItem {
   _id: string;
   userId: string;
