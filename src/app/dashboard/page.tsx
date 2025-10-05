@@ -1,3 +1,6 @@
+// src/app/dashboard/page.tsx
+
+export const dynamic = 'force-dynamic'; // <-- THIS IS THE MAIN FIX
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -164,7 +167,12 @@ export default function Dashboard() {
           <div className={styles.vaultSection}>
             <div className={styles.vaultHeader}>
               <h2 className={styles.vaultTitle}>Your Saved Items</h2>
-              <button onClick={openFormToCreate} className={`${styles.button} ${styles.primaryButton}`}>Add New Item</button>
+              <div className={styles.headerActions}>
+                <input type="file" accept=".json" ref={fileInputRef} onChange={handleImport} style={{ display: 'none' }} />
+                <button onClick={() => fileInputRef.current?.click()} className={`${styles.button} ${styles.secondaryButton}`}>Import</button>
+                <button onClick={handleExport} className={`${styles.button} ${styles.secondaryButton}`}>Export</button>
+                <button onClick={openFormToCreate} className={`${styles.button} ${styles.primaryButton}`}>Add New Item</button>
+              </div>
             </div>
             <input type="text" placeholder="Search by title..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={styles.searchBar}/>
             <div className={styles.vaultList}>
