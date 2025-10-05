@@ -6,6 +6,7 @@ import dbConnect from '@/lib/db';
 import VaultItem from '@/models/VaultItem';
 import User from '@/models/User';
 
+// Correct function signature for PUT
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -36,6 +37,7 @@ export async function PUT(
   return NextResponse.json(updatedItem, { status: 200 });
 }
 
+// Correct function signature for DELETE
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
