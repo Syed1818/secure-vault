@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import PasswordGenerator from '@/components/PasswordGenerator';
 import AddItemForm, { VaultItemData } from '@/components/AddItemForm';
 import UnlockForm from '@/components/UnlockForm';
+import { useTheme } from '@/components/ThemeProvider';
 import { deriveKey, encryptData, decryptData } from '@/lib/crypto';
-import { Search, Plus, LogOut, Edit2, Trash2 } from 'lucide-react';
+import styles from './dashboard.module.css';
 
 interface FetchedVaultItem {
   _id: string;
@@ -22,6 +23,7 @@ interface DecryptedVaultItem extends FetchedVaultItem {
 
 export default function Dashboard() {
   const { data: session, status } = useSession({ required: true });
+  const { theme, toggleTheme } = useTheme();
 
   const [encryptionKey, setEncryptionKey] = useState<CryptoKey | null>(null);
   const [vaultItems, setVaultItems] = useState<DecryptedVaultItem[]>([]);
@@ -32,10 +34,14 @@ export default function Dashboard() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(true);
 
-  useEffect(() => {
-    if (status === 'authenticated') setIsLoading(false);
-  }, [status]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (status === 'authenticated') {
+      setIsLoading(false);
+    }
+  }, [status]);
+  
   const handleUnlock = async (masterPassword: string) => {
     if (!session?.user?.email) {
       setError('Session not found.');
@@ -65,23 +71,15 @@ export default function Dashboard() {
     );
     setVaultItems(decryptedItems);
   };
-
+  
   const handleSaveItem = async (itemData: VaultItemData) => {
     if (!encryptionKey) return;
     const { title, ...dataToEncrypt } = itemData;
     const { iv, encryptedData } = await encryptData(encryptionKey, dataToEncrypt);
     if (editingItem) {
-      await fetch(`/api/vault/${editingItem._id}`, { 
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, iv, encryptedData })
-      });
+      await fetch(`/api/vault/${editingItem._id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, iv, encryptedData }) });
     } else {
-      await fetch('/api/vault', { 
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, iv, encryptedData })
-      });
+      await fetch('/api/vault', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, iv, encryptedData }) });
     }
     closeForm();
     await fetchAndDecryptVaultItems(encryptionKey);
@@ -94,121 +92,101 @@ export default function Dashboard() {
       await fetchAndDecryptVaultItems(encryptionKey);
     }
   };
+  
+  const openFormToEdit = (item: DecryptedVaultItem) => { setEditingItem(item); setIsFormOpen(true); };
+  const openFormToCreate = () => { setEditingItem(null); setIsFormOpen(true); };
+  const closeForm = () => { setEditingItem(null); setIsFormOpen(false); };
 
-  const openFormToEdit = (item: DecryptedVaultItem) => {
-    setEditingItem(item);
-    setIsFormOpen(true);
+  const handleExport = async () => {
+    if (!encryptionKey || vaultItems.length === 0) {
+      alert("Vault must be unlocked and contain items to export.");
+      return;
+    }
+    const decryptedData = vaultItems.map(item => ({ title: item.title, ...item.decryptedData }));
+    const { iv, encryptedData } = await encryptData(encryptionKey, decryptedData);
+    const exportData = JSON.stringify({ iv, encryptedData });
+    const blob = new Blob([exportData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'secure-vault-export.json';
+    a.click();
+    URL.revokeObjectURL(url);
   };
-  const openFormToCreate = () => {
-    setEditingItem(null);
-    setIsFormOpen(true);
-  };
-  const closeForm = () => {
-    setEditingItem(null);
-    setIsFormOpen(false);
+  
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!encryptionKey) return;
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const { iv, encryptedData } = JSON.parse(e.target?.result as string);
+        const decryptedArray = await decryptData(encryptionKey, iv, encryptedData) as VaultItemData[];
+        for (const item of decryptedArray) {
+          await handleSaveItem(item);
+        }
+        alert(`Successfully imported ${decryptedArray.length} items.`);
+      } catch (err) {
+        alert("Import failed. The file may be corrupt or the password is incorrect.");
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
   };
 
-  const filteredVaultItems = vaultItems.filter(item =>
-    item.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredVaultItems = vaultItems.filter(item => item.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
   if (status === 'loading' || isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen text-gray-600 dark:text-gray-300">
-        Loading your vault...
-      </div>
-    );
+    return <div className={styles.loading}>Loading...</div>;
   }
 
   return (
-    <div className="relative min-h-screen bg-background text-foreground">
-      {isFormOpen && (
-        <AddItemForm
-          onSave={handleSaveItem}
-          onCancel={closeForm}
-          initialData={editingItem ? { title: editingItem.title, ...editingItem.decryptedData } : null}
-        />
-      )}
+    <div className={styles.pageWrapper}>
+      {isFormOpen && <AddItemForm onSave={handleSaveItem} onCancel={closeForm} initialData={editingItem ? {title: editingItem.title, ...editingItem.decryptedData} : null} />}
       {isLocked && <UnlockForm onUnlock={handleUnlock} error={error} />}
-      <div className={isLocked ? 'blur-md pointer-events-none' : ''}>
-        
-        {/* HEADER */}
-        <header className="sticky top-0 z-10 flex items-center justify-between p-4 bg-white/90 backdrop-blur-md border-b dark:bg-gray-900/90 dark:border-gray-700">
-          <div className="text-sm md:text-base font-medium text-gray-700 dark:text-gray-300">
-            Signed in as <span className="font-semibold">{session?.user?.email}</span>
-          </div>
-          <button
-            onClick={() => signOut({ callbackUrl: '/' })}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
-          >
-            <LogOut className="w-4 h-4" /> Log Out
-          </button>
-        </header>
-
-        {/* MAIN */}
-        <main className="container p-6 mx-auto max-w-5xl">
-          <h1 className="text-3xl font-bold mb-6">🔐 Your Vault</h1>
-          <PasswordGenerator />
-
-          {/* Search + Add */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-8 gap-4">
-            <div className="relative w-full sm:w-1/2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search by title..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 rounded-lg border border-gray-300 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-              />
-            </div>
-            <button
-              onClick={openFormToCreate}
-              className="flex items-center justify-center gap-2 px-4 py-2 font-semibold text-white bg-indigo-600 rounded-lg shadow hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400"
-            >
-              <Plus className="w-4 h-4" /> Add Item
+      <div className={isLocked ? styles.blur : ''}>
+        <header className={styles.header}>
+          <div className={styles.headerInfo}>Signed in as: {session?.user?.email}</div>
+          <div className={styles.headerActions}>
+            <button onClick={toggleTheme} className={`${styles.button} ${styles.themeButton}`}>
+              {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+            </button>
+            <button onClick={() => signOut({ callbackUrl: '/' })} className={`${styles.button} ${styles.logoutButton}`}>
+              Log Out
             </button>
           </div>
-
-          {/* ITEMS */}
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {filteredVaultItems.map((item) => (
-              <div
-                key={item._id}
-                className="p-4 rounded-xl bg-white border shadow-sm hover:shadow-md transition dark:bg-gray-800 dark:border-gray-700"
-              >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">{item.title}</h3>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => openFormToEdit(item)}
-                      className="flex items-center gap-1 px-3 py-1 text-sm text-white bg-blue-500 rounded hover:bg-blue-600"
-                    >
-                      <Edit2 className="w-4 h-4" /> Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteItem(item._id)}
-                      className="flex items-center gap-1 px-3 py-1 text-sm text-white bg-red-500 rounded hover:bg-red-600"
-                    >
-                      <Trash2 className="w-4 h-4" /> Delete
-                    </button>
+        </header>
+        <main className={styles.main}>
+          <h1 className={styles.mainTitle}>Welcome to Your Vault</h1>
+          <PasswordGenerator />
+          <div className={styles.vaultSection}>
+            <div className={styles.vaultHeader}>
+              <h2 className={styles.vaultTitle}>Your Saved Items</h2>
+              <button onClick={openFormToCreate} className={`${styles.button} ${styles.primaryButton}`}>Add New Item</button>
+            </div>
+            <input type="text" placeholder="Search by title..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={styles.searchBar}/>
+            <div className={styles.vaultList}>
+              {filteredVaultItems.length > 0 ? (
+                filteredVaultItems.map(item => (
+                  <div key={item._id} className={styles.vaultItem}>
+                    <div className={styles.itemHeader}>
+                      <h3 className={styles.itemTitle}>{item.title}</h3>
+                      <div className={styles.itemActions}>
+                        <button onClick={() => openFormToEdit(item)} className={`${styles.button} ${styles.editButton}`}>Edit</button>
+                        <button onClick={() => handleDeleteItem(item._id)} className={`${styles.button} ${styles.deleteButton}`}>Delete</button>
+                      </div>
+                    </div>
+                    <p className={styles.itemInfo}>Username: {item.decryptedData?.username}</p>
+                    <p className={styles.itemInfo}>Password: •••••••••</p>
                   </div>
-                </div>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  Username: {item.decryptedData?.username}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Password: •••••••••
-                </p>
-              </div>
-            ))}
+                ))
+              ) : (
+                <p className={styles.itemInfo}>{vaultItems.length > 0 ? 'No items match your search.' : 'You have no saved items yet.'}</p>
+              )}
+            </div>
           </div>
-
-          {filteredVaultItems.length === 0 && (
-            <p className="mt-6 text-center text-gray-500 dark:text-gray-400">
-              No items found. Try adding one!
-            </p>
-          )}
         </main>
       </div>
     </div>

@@ -1,0 +1,155 @@
+.pageWrapper {
+  position: relative;
+  min-height: 100vh;
+}
+
+.blur {
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background-color: var(--card-background-color);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--card-border-color);
+}
+
+.headerInfo {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.button {
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.logoutButton {
+  background-color: #ef4444;
+  color: white;
+}
+
+.themeButton {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+[data-theme='dark'] .themeButton {
+  background-color: #4b5563;
+  color: #d1d5db;
+}
+
+.main {
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.mainTitle {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.vaultSection {
+  margin-top: 2rem;
+}
+
+.vaultHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vaultTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.primaryButton {
+  background-color: var(--button-primary-bg);
+  color: var(--button-primary-text);
+}
+
+.searchBar {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  margin-top: 1rem;
+  background-color: var(--input-background-color);
+  color: var(--input-text-color);
+  border: 1px solid var(--card-border-color);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.vaultList {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.vaultItem {
+  padding: 1rem;
+  background-color: var(--card-background-color);
+  border: 1px solid var(--card-border-color);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.itemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.itemTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.itemActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.editButton {
+  background-color: #3b82f6;
+  color: white;
+  font-size: 0.875rem;
+}
+
+.deleteButton {
+  background-color: #ef4444;
+  color: white;
+  font-size: 0.875rem;
+}
+
+.itemInfo {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
