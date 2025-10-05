@@ -12,8 +12,8 @@ export default function UnlockForm({ onUnlock, error }: UnlockFormProps) {
   const [password, setPassword] = useState('');
   const [isUnlocking, setIsUnlocking] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+const handleSubmit = async (event: React.FormEvent) => {
+  event.preventDefault();
     setIsUnlocking(true);
     try {
       await onUnlock(password);

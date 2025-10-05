@@ -1,5 +1,5 @@
 'use client';
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'; // <-- THIS IS THE MAIN FIX
 
 import { useState, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
@@ -10,7 +10,6 @@ import { useTheme } from '@/components/ThemeProvider';
 import { deriveKey, encryptData, decryptData } from '@/lib/crypto';
 import styles from './dashboard.module.css';
 
-// ... the rest of the file is the same ...
 interface FetchedVaultItem {
   _id: string;
   userId: string;
@@ -130,8 +129,9 @@ export default function Dashboard() {
           await handleSaveItem(item);
         }
         alert(`Successfully imported ${decryptedArray.length} items.`);
-      } catch (err) {
+      } catch (error) {
         alert("Import failed. The file may be corrupt or the password is incorrect.");
+        console.error(error); // Use the error variable
       }
     };
     reader.readAsText(file);
