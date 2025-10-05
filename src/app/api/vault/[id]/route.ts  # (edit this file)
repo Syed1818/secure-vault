@@ -1,3 +1,0 @@
-export async function PUT(request: NextRequest, context: { params: { id: string; } }) {
-    // Your implementation here
-}
