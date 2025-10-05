@@ -5,50 +5,56 @@ import dbConnect from '@/lib/db';
 import VaultItem from '@/models/VaultItem';
 import User from '@/models/User';
 
-// UPDATE vault item
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
+    // Get the session
     const session = await getServerSession(authOptions);
+
     if (!session?.user?.email) {
-      return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     await dbConnect();
-    const user = await User.findOne({ email: session.user.email });
-    if (!user) return NextResponse.json({ message: 'User not found' }, { status: 404 });
 
-    const { title, iv, encryptedData } = await request.json();
+    // Find the vault item by ID and user email
+    const vaultItem = await VaultItem.findOne({
+      _id: params.id,
+      userEmail: session.user.email,
+    });
 
-    const updated = await VaultItem.findOneAndUpdate(
-      { _id: params.id, userId: user._id },
-      { title, iv, encryptedData },
-      { new: true }
-    );
+    if (!vaultItem) {
+      return NextResponse.json({ error: 'Vault item not found' }, { status: 404 });
+    }
 
-    return NextResponse.json(updated, { status: 200 });
+    return NextResponse.json(vaultItem);
   } catch (error) {
-    console.error('Vault PUT Error:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    console.error('Vault GET error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
-// DELETE vault item
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getServerSession(authOptions);
+
     if (!session?.user?.email) {
-      return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     await dbConnect();
-    const user = await User.findOne({ email: session.user.email });
-    if (!user) return NextResponse.json({ message: 'User not found' }, { status: 404 });
 
-    await VaultItem.findOneAndDelete({ _id: params.id, userId: user._id });
+    const deletedItem = await VaultItem.findOneAndDelete({
+      _id: params.id,
+      userEmail: session.user.email,
+    });
 
-    return NextResponse.json({ message: 'Item deleted' }, { status: 200 });
+    if (!deletedItem) {
+      return NextResponse.json({ error: 'Vault item not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: 'Vault item deleted successfully' });
   } catch (error) {
-    console.error('Vault DELETE Error:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    console.error('Vault DELETE error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

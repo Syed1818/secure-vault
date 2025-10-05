@@ -1,12 +1,9 @@
-// src/app/api/auth/[...nextauth]/route.ts
-
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 
-const authOptions = {
+export const authOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -15,32 +12,60 @@ const authOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        await dbConnect();
-
-        if (!credentials) {
+        if (!credentials?.email || !credentials.password) {
           return null;
         }
 
+        // Connect to the database
+        await dbConnect();
+
+        // Find the user by email
         const user = await User.findOne({ email: credentials.email });
 
-        if (user && (await bcrypt.compare(credentials.password, user.password))) {
-          // Return a simplified user object for the session
-          return { id: user._id.toString(), email: user.email };
-        } else {
-          return null; // Authentication failed
+        if (!user) {
+          return null;
         }
+
+        // NOTE: If storing hashed passwords, compare hashes here
+        if (user.password !== credentials.password) {
+          return null;
+        }
+
+        // Return user object for session
+        return {
+          id: user._id.toString(),
+          email: user.email,
+          name: user.name || '',
+        };
       },
     }),
   ],
   session: {
-    strategy: 'jwt' as const,
+    strategy: 'jwt',
+  },
+  jwt: {
+    secret: process.env.NEXTAUTH_SECRET,
+  },
+  pages: {
+    signIn: '/login', // optional: custom login page
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id as string;
+      }
+      return session;
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
-  pages: {
-    signIn: '/login', // Redirect users to a custom login page
-  },
 };
 
+// Export the handler for GET and POST HTTP methods
 const handler = NextAuth(authOptions);
-
 export { handler as GET, handler as POST };
