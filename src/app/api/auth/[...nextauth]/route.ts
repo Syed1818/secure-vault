@@ -1,7 +1,7 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import dbConnect from '@/lib/db';
-import User from '@/models/User';
+import User, { IUser } from '@/models/User';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -19,7 +19,7 @@ export const authOptions: NextAuthOptions = {
 
           await dbConnect();
 
-          const user = await User.findOne({ email: credentials.email });
+          const user = await User.findOne({ email: credentials.email }) as IUser | null;
           if (!user) {
             return null;
           }
@@ -29,11 +29,9 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          // Use type assertion to bypass TypeScript checking
-          const userObj = user as any;
           return {
-            id: userObj._id.toString(),
-            email: userObj.email,
+            id: user._id.toString(),
+            email: user.email,
           };
         } catch (error) {
           console.error('Auth error:', error);
