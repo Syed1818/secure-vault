@@ -6,10 +6,10 @@ import dbConnect from '@/lib/db';
 import VaultItem from '@/models/VaultItem';
 import User from '@/models/User';
 
-// Correct function signature for PUT
+// Correct function signature for PUT in Next.js 15
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession();
   if (!session?.user?.email) {
@@ -22,10 +22,12 @@ export async function PUT(
     return NextResponse.json({ message: 'User not found' }, { status: 404 });
   }
 
+  // Await the params Promise
+  const { id } = await params;
   const { title, iv, encryptedData } = await request.json();
   
   const updatedItem = await VaultItem.findOneAndUpdate(
-    { _id: params.id, userId: user._id },
+    { _id: id, userId: user._id },
     { title, iv, encryptedData },
     { new: true }
   );
@@ -37,10 +39,10 @@ export async function PUT(
   return NextResponse.json(updatedItem, { status: 200 });
 }
 
-// Correct function signature for DELETE
+// Correct function signature for DELETE in Next.js 15
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession();
   if (!session?.user?.email) {
@@ -53,13 +55,16 @@ export async function DELETE(
     return NextResponse.json({ message: 'User not found' }, { status: 404 });
   }
 
-  const vaultItem = await VaultItem.findOne({ _id: params.id, userId: user._id });
+  // Await the params Promise
+  const { id } = await params;
+
+  const vaultItem = await VaultItem.findOne({ _id: id, userId: user._id });
 
   if (!vaultItem) {
     return NextResponse.json({ message: 'Item not found or you do not have permission' }, { status: 404 });
   }
 
-  await VaultItem.deleteOne({ _id: params.id });
+  await VaultItem.deleteOne({ _id: id });
 
   return NextResponse.json({ message: 'Item deleted successfully' }, { status: 200 });
 }
