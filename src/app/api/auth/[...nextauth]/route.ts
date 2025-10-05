@@ -1,9 +1,10 @@
-import NextAuth from 'next-auth';
+import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
+import { Types } from 'mongoose';
 
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -12,38 +13,36 @@ export const authOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials.password) {
+        try {
+          if (!credentials?.email || !credentials.password) {
+            return null;
+          }
+
+          await dbConnect();
+
+          const user = await User.findOne({ email: credentials.email });
+          if (!user) {
+            return null;
+          }
+
+          const isValid = await user.comparePassword(credentials.password);
+          if (!isValid) {
+            return null;
+          }
+
+          return {
+            id: user._id.toString(),
+            email: user.email,
+          };
+        } catch (error) {
+          console.error('Auth error:', error);
           return null;
         }
-
-        // Connect to MongoDB
-        await dbConnect();
-
-        // Find the user by email
-        const user = await User.findOne({ email: credentials.email });
-        if (!user) {
-          return null;
-        }
-
-        // Compare hashed password
-        const isValid = await user.comparePassword(credentials.password);
-        if (!isValid) {
-          return null;
-        }
-
-        // Return user object for session
-        return {
-          id: user._id.toString(),
-          email: user.email,
-        };
       },
     }),
   ],
   session: {
     strategy: 'jwt',
-  },
-  jwt: {
-    secret: process.env.NEXTAUTH_SECRET,
   },
   pages: {
     signIn: '/login',
@@ -56,7 +55,7 @@ export const authOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token) {
+      if (token && session.user) {
         session.user.id = token.id as string;
       }
       return session;
@@ -65,6 +64,5 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 };
 
-// Export the handler for GET and POST methods
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
