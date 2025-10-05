@@ -2,7 +2,6 @@ import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
-import { Types } from 'mongoose';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -30,9 +29,11 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
+          // Type assertion to fix the TypeScript error
+          const userObj = user.toObject();
           return {
-            id: user._id.toString(),
-            email: user.email,
+            id: userObj._id.toString(),
+            email: userObj.email,
           };
         } catch (error) {
           console.error('Auth error:', error);

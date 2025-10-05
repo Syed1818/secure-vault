@@ -34,7 +34,6 @@ export default function Dashboard() {
   const [editingItem, setEditingItem] = useState<DecryptedVaultItem | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(true);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (status === 'authenticated') setIsLoading(false);
