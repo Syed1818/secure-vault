@@ -16,18 +16,18 @@ export const authOptions = {
           return null;
         }
 
-        // Connect to the database
+        // Connect to MongoDB
         await dbConnect();
 
         // Find the user by email
         const user = await User.findOne({ email: credentials.email });
-
         if (!user) {
           return null;
         }
 
-        // NOTE: If storing hashed passwords, compare hashes here
-        if (user.password !== credentials.password) {
+        // Compare hashed password
+        const isValid = await user.comparePassword(credentials.password);
+        if (!isValid) {
           return null;
         }
 
@@ -35,7 +35,6 @@ export const authOptions = {
         return {
           id: user._id.toString(),
           email: user.email,
-          name: user.name || '',
         };
       },
     }),
@@ -47,7 +46,7 @@ export const authOptions = {
     secret: process.env.NEXTAUTH_SECRET,
   },
   pages: {
-    signIn: '/login', // optional: custom login page
+    signIn: '/login',
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -66,6 +65,6 @@ export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 };
 
-// Export the handler for GET and POST HTTP methods
+// Export the handler for GET and POST methods
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
