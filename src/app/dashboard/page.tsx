@@ -1,201 +1,95 @@
 'use client';
-export const dynamic = 'force-dynamic'; // <-- THIS IS THE MAIN FIX
 
-import { useState, useEffect, useRef } from 'react';
-import { useSession, signOut } from 'next-auth/react';
-import PasswordGenerator from '@/components/PasswordGenerator';
-import AddItemForm, { VaultItemData } from '@/components/AddItemForm';
+import React, { useEffect, useState } from 'react';
+import VaultItemCard from '@/components/VaultItemCard';
 import UnlockForm from '@/components/UnlockForm';
-import { useTheme } from '@/components/ThemeProvider';
-import { deriveKey, encryptData, decryptData } from '@/lib/crypto';
-import styles from './dashboard.module.css';
+import AddItemForm, { VaultItemData } from '@/components/AddItemForm';
+import { useSession } from 'next-auth/react';
+import '@/styles/vault.css';
+import '@/styles/unlock.css';
+import '@/styles/AddItemForm.module.css';
 
-interface FetchedVaultItem {
+interface VaultItem {
   _id: string;
-  userId: string;
   title: string;
   iv: string;
   encryptedData: string;
 }
 
-interface DecryptedVaultItem extends FetchedVaultItem {
-  decryptedData?: VaultItemData;
-}
+const Dashboard: React.FC = () => {
+  const { data: session } = useSession();
+  const [vaultItems, setVaultItems] = useState<VaultItem[]>([]);
+  const [selectedItem, setSelectedItem] = useState<VaultItem | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
 
-export default function Dashboard() {
-  const { data: session, status } = useSession({ required: true });
-  const { theme, toggleTheme } = useTheme();
-
-  const [encryptionKey, setEncryptionKey] = useState<CryptoKey | null>(null);
-  const [vaultItems, setVaultItems] = useState<DecryptedVaultItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [editingItem, setEditingItem] = useState<DecryptedVaultItem | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isLocked, setIsLocked] = useState(true);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
+  // Fetch vault items
   useEffect(() => {
-    if (status === 'authenticated') {
-      setIsLoading(false);
-    }
-  }, [status]);
-  
-  const handleUnlock = async (masterPassword: string) => {
-    if (!session?.user?.email) {
-      setError('Session not found.');
-      return;
-    }
-    try {
-      setError('');
-      const key = await deriveKey(masterPassword, session.user.email);
-      setEncryptionKey(key);
-      await fetchAndDecryptVaultItems(key);
-      setIsLocked(false);
-    } catch (e) {
-      console.error(e);
-      setError("Failed to decrypt. Please check your password.");
-      throw new Error("Decryption failed");
-    }
-  };
-
-  const fetchAndDecryptVaultItems = async (key: CryptoKey) => {
-    const res = await fetch('/api/vault');
-    const items: FetchedVaultItem[] = await res.json();
-    const decryptedItems = await Promise.all(
-      items.map(async (item) => {
-        const decryptedData = await decryptData(key, item.iv, item.encryptedData) as VaultItemData;
-        return { ...item, decryptedData };
-      })
-    );
-    setVaultItems(decryptedItems);
-  };
-  
-  const handleSaveItem = async (itemData: VaultItemData) => {
-    if (!encryptionKey) return;
-    const { title, ...dataToEncrypt } = itemData;
-    const { iv, encryptedData } = await encryptData(encryptionKey, dataToEncrypt);
-    if (editingItem) {
-      await fetch(`/api/vault/${editingItem._id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, iv, encryptedData }) });
-    } else {
-      await fetch('/api/vault', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, iv, encryptedData }) });
-    }
-    closeForm();
-    await fetchAndDecryptVaultItems(encryptionKey);
-  };
-
-  const handleDeleteItem = async (itemId: string) => {
-    if (!encryptionKey) return;
-    if (confirm('Are you sure you want to delete this item?')) {
-      await fetch(`/api/vault/${itemId}`, { method: 'DELETE' });
-      await fetchAndDecryptVaultItems(encryptionKey);
-    }
-  };
-  
-  const openFormToEdit = (item: DecryptedVaultItem) => { setEditingItem(item); setIsFormOpen(true); };
-  const openFormToCreate = () => { setEditingItem(null); setIsFormOpen(true); };
-  const closeForm = () => { setEditingItem(null); setIsFormOpen(false); };
-
-  const handleExport = async () => {
-    if (!encryptionKey || vaultItems.length === 0) {
-      alert("Vault must be unlocked and contain items to export.");
-      return;
-    }
-    const decryptedData = vaultItems.map(item => ({ title: item.title, ...item.decryptedData }));
-    const { iv, encryptedData } = await encryptData(encryptionKey, decryptedData);
-    const exportData = JSON.stringify({ iv, encryptedData });
-    const blob = new Blob([exportData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'secure-vault-export.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-  
-  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!encryptionKey) return;
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const { iv, encryptedData } = JSON.parse(e.target?.result as string);
-        const decryptedArray = await decryptData(encryptionKey, iv, encryptedData) as VaultItemData[];
-        for (const item of decryptedArray) {
-          await handleSaveItem(item);
-        }
-        alert(`Successfully imported ${decryptedArray.length} items.`);
-      } catch (error) {
-        alert("Import failed. The file may be corrupt or the password is incorrect.");
-        console.error(error); // Use the error variable
+    const fetchVaultItems = async () => {
+      const res = await fetch('/api/vault');
+      if (res.ok) {
+        const data: VaultItem[] = await res.json();
+        setVaultItems(data);
       }
     };
-    reader.readAsText(file);
-    event.target.value = '';
+    fetchVaultItems();
+  }, []);
+
+  // Delete vault item
+  const handleDelete = async (id: string) => {
+    const res = await fetch(`/api/vault/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      setVaultItems(vaultItems.filter((item) => item._id !== id));
+    }
   };
 
-  const filteredVaultItems = vaultItems.filter(item => item.title.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Add new vault item
+  const handleSave = async (itemData: VaultItemData) => {
+    // Here you would encrypt itemData before sending
+    const iv = 'dummy-iv'; // replace with real IV
+    const encryptedData = 'dummy-encrypted'; // replace with real encryption
+    const res = await fetch('/api/vault', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: itemData.title, iv, encryptedData }),
+    });
 
-  if (status === 'loading' || isLoading) {
-    return <div className={styles.loading}>Loading...</div>;
-  }
+    if (res.ok) {
+      const newItem: VaultItem = await res.json();
+      setVaultItems([...vaultItems, newItem]);
+      setShowAddForm(false);
+    }
+  };
 
   return (
-    <div className={styles.pageWrapper}>
-      {isFormOpen && <AddItemForm onSave={handleSaveItem} onCancel={closeForm} initialData={editingItem ? {title: editingItem.title, ...editingItem.decryptedData} : null} />}
-      {isLocked && <UnlockForm onUnlock={handleUnlock} error={error} />}
-      <div className={isLocked ? styles.blur : ''}>
-        <header className={styles.header}>
-          <div className={styles.headerInfo}>Signed in as: {session?.user?.email}</div>
-          <div className={styles.headerActions}>
-            <button onClick={toggleTheme} className={`${styles.button} ${styles.themeButton}`}>
-              {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
-            </button>
-            <button onClick={() => signOut({ callbackUrl: '/' })} className={`${styles.button} ${styles.logoutButton}`}>
-              Log Out
-            </button>
-          </div>
-        </header>
-        <main className={styles.main}>
-          <h1 className={styles.mainTitle}>Welcome to Your Vault</h1>
-          <PasswordGenerator />
-          <div className={styles.vaultSection}>
-            <div className={styles.vaultHeader}>
-              <h2 className={styles.vaultTitle}>Your Saved Items</h2>
-              <div className={styles.headerActions}>
-                <input type="file" accept=".json" ref={fileInputRef} onChange={handleImport} style={{ display: 'none' }} />
-                <button onClick={() => fileInputRef.current?.click()} className={`${styles.button} ${styles.secondaryButton}`}>Import</button>
-                <button onClick={handleExport} className={`${styles.button} ${styles.secondaryButton}`}>Export</button>
-                <button onClick={openFormToCreate} className={`${styles.button} ${styles.primaryButton}`}>Add New Item</button>
-              </div>
-            </div>
-            <input type="text" placeholder="Search by title..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={styles.searchBar}/>
-            <div className={styles.vaultList}>
-              {filteredVaultItems.length > 0 ? (
-                filteredVaultItems.map(item => (
-                  <div key={item._id} className={styles.vaultItem}>
-                    <div className={styles.itemHeader}>
-                      <h3 className={styles.itemTitle}>{item.title}</h3>
-                      <div className={styles.itemActions}>
-                        <button onClick={() => openFormToEdit(item)} className={`${styles.button} ${styles.editButton}`}>Edit</button>
-                        <button onClick={() => handleDeleteItem(item._id)} className={`${styles.button} ${styles.deleteButton}`}>Delete</button>
-                      </div>
-                    </div>
-                    <p className={styles.itemInfo}>Username: {item.decryptedData?.username}</p>
-                    <p className={styles.itemInfo}>Password: •••••••••</p>
-                  </div>
-                ))
-              ) : (
-                <p className={styles.itemInfo}>{vaultItems.length > 0 ? 'No items match your search.' : 'You have no saved items yet.'}</p>
-              )}
-            </div>
-          </div>
-        </main>
-      </div>
+    <div className="dashboard">
+      <h1>Your Vault</h1>
+      <button onClick={() => setShowAddForm(true)}>Add New Vault Item</button>
+
+      {vaultItems.map((item) => (
+        <VaultItemCard
+          key={item._id}
+          title={item.title}
+          onUnlock={() => setSelectedItem(item)}
+          onDelete={() => handleDelete(item._id)}
+        />
+      ))}
+
+      {selectedItem && (
+        <UnlockForm
+          encryptedData={selectedItem.encryptedData}
+          iv={selectedItem.iv}
+          onClose={() => setSelectedItem(null)}
+        />
+      )}
+
+      {showAddForm && (
+        <AddItemForm
+          onSave={handleSave}
+          onCancel={() => setShowAddForm(false)}
+        />
+      )}
     </div>
   );
-}
+};
+
+export default Dashboard;

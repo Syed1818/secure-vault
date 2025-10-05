@@ -4,13 +4,11 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import dbConnect from '@/lib/db';
 import VaultItem from '@/models/VaultItem';
 
-// Type-safe params interface
-interface Params {
-  id: string;
-}
+// Correct type for params for Next.js App Router
+type ParamsType = { params: { id: string } };
 
-// GET a single vault item by ID
-export async function GET(req: NextRequest, { params }: { params: Params }) {
+// GET a single vault item
+export async function GET(req: NextRequest, { params }: ParamsType) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -29,8 +27,8 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
   return NextResponse.json(vaultItem);
 }
 
-// DELETE a vault item by ID
-export async function DELETE(req: NextRequest, { params }: { params: Params }) {
+// DELETE a vault item
+export async function DELETE(req: NextRequest, { params }: ParamsType) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -49,15 +47,14 @@ export async function DELETE(req: NextRequest, { params }: { params: Params }) {
   return NextResponse.json({ message: 'Vault item deleted successfully' });
 }
 
-// PUT (update) a vault item by ID
-export async function PUT(req: NextRequest, { params }: { params: Params }) {
+// PUT (update) a vault item
+export async function PUT(req: NextRequest, { params }: ParamsType) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await req.json();
-  const { title, iv, encryptedData } = body;
+  const { title, iv, encryptedData } = await req.json();
 
   if (!title && !iv && !encryptedData) {
     return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
