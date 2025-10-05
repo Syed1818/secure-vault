@@ -2,7 +2,6 @@ import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
-import type { IUser } from '@/models/User';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -20,28 +19,21 @@ export const authOptions: NextAuthOptions = {
 
           await dbConnect();
 
-          // Use type assertion to tell TypeScript about the user type
-          const user = await User.findOne({ email: credentials.email }).lean() as IUser | null;
-          
+          const user = await User.findOne({ email: credentials.email });
           if (!user) {
             return null;
           }
 
-          // For password comparison, we need the document methods, so fetch again without lean
-          const userDoc = await User.findOne({ email: credentials.email });
-          if (!userDoc) {
-            return null;
-          }
-
-          const isValid = await userDoc.comparePassword(credentials.password);
+          const isValid = await user.comparePassword(credentials.password);
           if (!isValid) {
             return null;
           }
 
-          // Now we can safely access the properties
+          // Use type assertion to bypass TypeScript checking
+          const userObj = user as any;
           return {
-            id: user._id.toString(),
-            email: user.email,
+            id: userObj._id.toString(),
+            email: userObj.email,
           };
         } catch (error) {
           console.error('Auth error:', error);
